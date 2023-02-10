@@ -32,7 +32,7 @@ class QTable:
         self.T = Tiling.TileCoder(_tiles_per_dim, _lims, _tilings)
 
         # Build arrays to store data
-        self.initial_array_size = 100000000
+        self.initial_array_size = 1000000
         self.Q_hash = {}
         self.Q = np.array([np.zeros(_action_size)] * self.initial_array_size)
         self.Q_size = self.Q.size
