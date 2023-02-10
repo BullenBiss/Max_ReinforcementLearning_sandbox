@@ -1,0 +1,6 @@
+/Agents
+/__pychache__
+
+*.gif
+*.npy
+*.pickle
