@@ -1,21 +1,26 @@
 import gymnasium as gym
 import qlearning
-import Evaluation_tools
-import torch
-print(torch.cuda.is_available())
+from gymnasium.wrappers import TransformReward
 
-env = gym.make("LunarLander-v2", render_mode=None)
-env.action_space.seed(42)
+env = gym.make('FrozenLake-v1', desc=None, map_name="8x8", is_slippery=False, render_mode=None)
+env = TransformReward(env, lambda r: 1 if r == 1 else r-0.04)
 
-Qtable = qlearning.QTable(0.99, 0.001, 0.05, _action_size=4, _state_size= 1000000, _tile_coding = True, resume_last=True)
-#Qtable = qlearning.QTable(0.7, tiles_per_dim, lims, tilings, 4)
-Qtable.change_name("BöörjeSalmiing")
-evaluator = Evaluation_tools.Evaluator()
+
+
+gamma = 0.99
+alpha = 0.01
+epsilon = 0.2
+
+Qtable = qlearning.QTable(gamma, alpha, epsilon, _action_size=4, _state_size= 65, resume_last=False)
+Qtable.change_name("IsBörje")
 
 observation, info = env.reset(seed=42)
 action = env.action_space.sample()
 print("Starting")
 terminated_i = 0
+
+### TRAINING LOOP
+# Put your training algorithm here
 try:
     while True:
         observation, reward, terminated, truncated, info = env.step(action)
@@ -23,21 +28,20 @@ try:
 
         if terminated or truncated:
             terminated_i = terminated_i + 1
-            evaluator.cumulative_reward(reward, terminated_i)
 
-            if reward > -100:
-                print(reward, terminated_i)
-                #if reward >= 100:
-                    #Qtable.save_Q_table_to_file()
+            if reward > 0:
+                print("Found goal at iteration", terminated_i)
 
             observation, info = env.reset()
 except KeyboardInterrupt:
     Qtable.save_Q_table_to_file()
-    evaluator.save_log()
     print("Run ended")
     env.close()
 
-env_test = gym.make("LunarLander-v2", render_mode='human')
+
+### TESTING LOOP
+# Put your algorithm for taking the best action here
+env_test = gym.make('FrozenLake-v1', desc=None, map_name="8x8", is_slippery=False, render_mode='human')
 observation, info = env_test.reset(seed=42)
 try:
     while True:

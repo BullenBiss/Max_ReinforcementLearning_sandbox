@@ -1,13 +1,11 @@
 import gymnasium as gym
 import qlearning
 import Evaluation_tools
-import torch
-print(torch.cuda.is_available())
 
-env = gym.make("LunarLander-v2", render_mode=None)
+env = gym.make('Acrobot-v1', render_mode=None)
 env.action_space.seed(42)
 
-Qtable = qlearning.QTable(0.99, 0.001, 0.05, _action_size=4, _state_size= 1000000, _tile_coding = True, resume_last=True)
+Qtable = qlearning.QTable(0.8, 0.01, 0.1, _action_size=3, _state_size= 1000000, _tile_coding = True, resume_last=False)
 #Qtable = qlearning.QTable(0.7, tiles_per_dim, lims, tilings, 4)
 Qtable.change_name("BöörjeSalmiing")
 evaluator = Evaluation_tools.Evaluator()
@@ -25,7 +23,7 @@ try:
             terminated_i = terminated_i + 1
             evaluator.cumulative_reward(reward, terminated_i)
 
-            if reward > -100:
+            if reward == 0:
                 print(reward, terminated_i)
                 #if reward >= 100:
                     #Qtable.save_Q_table_to_file()
@@ -37,7 +35,7 @@ except KeyboardInterrupt:
     print("Run ended")
     env.close()
 
-env_test = gym.make("LunarLander-v2", render_mode='human')
+env_test = gym.make('Acrobot-v1', render_mode='human')
 observation, info = env_test.reset(seed=42)
 try:
     while True:

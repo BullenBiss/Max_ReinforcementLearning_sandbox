@@ -9,12 +9,21 @@ np.seterr(all='raise')
 
 
 class QTable:
-    def __init__(self, _gamma, _tiles_per_dim, _lims, _tilings, _action_size, resume_last=False):
+    def __init__(self, _gamma, _alpha, _epsilon, _action_size, _state_size, _tile_coding = False, resume_last=False):
 
         self.name = 'Noone'
-        self.alpha = 0.2
+        self.alpha = _alpha
         self.gamma = _gamma
-        self.epsilon = 0.05
+        self.epsilon = _epsilon
+        self.tile_coding = _tile_coding
+        self.action_size = _action_size
+        _tiles_per_dim = [3, 3, 3, 3, 3, 3, 2, 2]
+        _lims = [(-1.5, 1.5), (-1.5, 1.5), (-5, 5), (-5, 5), (-3.1415927, 3.1415927), (-5, 5), (-0, 1), (-0, 1)]
+        _tilings = 2
+
+        #_tiles_per_dim = [3, 3, 3, 3, 3, 3]
+        #_lims = [(-1, 1), (-1, 1), (-1, 1), (-1, 1), (-12.566371, 12.566371), (-28.274334, 28.274334)]
+        #_tilings = 3
 
         # s, a, r , the previous state, action, and reward, initially null
         self.previous_coded_state = np.NaN
@@ -32,7 +41,7 @@ class QTable:
         self.T = Tiling.TileCoder(_tiles_per_dim, _lims, _tilings)
 
         # Build arrays to store data
-        self.initial_array_size = 1000000
+        self.initial_array_size = _state_size
         self.Q_hash = {}
         self.Q = np.array([np.zeros(_action_size)] * self.initial_array_size)
         self.Q_size = self.Q.size
@@ -71,7 +80,7 @@ class QTable:
 
     def epsilon_greedy(self, Q_index):
         if random.random() < self.epsilon:
-            return random.randint(0, 3)
+            return random.randint(0, self.action_size-1)
         else:
             return np.argmax(self.Q[Q_index])
 
@@ -106,17 +115,29 @@ class QTable:
     def change_name(self, new_name):
         self.name = new_name
 
+    def tile_coder(self, current_state):
+        return self.T[current_state].tobytes()
+
+    def get_best_action(self, current_state):
+        if self.tile_coding:
+            current_state = self.tile_coder(current_state)
+        self.check_set_Q_hash(current_state)
+        current_Q_index = self.get_Q_index(current_state)
+        return int(np.argmax(self.Q[current_Q_index]))
+
     def update_Q(self, current_state, current_reward, terminated):
         # Algorithm used from "Artificial Intelligence A Modern Approach" by Stuart Russell and Peter Norvig
         # Q-Learning-Agent, page 844, figure 21.8
+        if self.tile_coding:
+            current_coded_state = self.tile_coder(current_state)
+        else:
+            current_coded_state = current_state
 
-        current_coded_state = self.T[current_state].tobytes()
         self.check_set_Q_hash(current_coded_state)
-
         current_Q_index = self.get_Q_index(current_coded_state)
 
-        if terminated:               # Set as 0 because of the environment, 0 = no action
-            self.set_Q(self.previous_Q_index, 0, current_reward)
+        #if terminated:               # Set as 0 because of the environment, 0 = no action
+            #self.set_Q(self.previous_Q_index, 0, current_reward)
 
         if ~(np.isnan(self.previous_Q_index)):
             self.increment_Qn(self.previous_Q_index, self.previous_action)
