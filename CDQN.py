@@ -36,15 +36,15 @@ class QNetwork(nn.Module):
 class CnnQNetwork(nn.Module):
     def __init__(self, channels, pixel_hw, n_actions):
         super(CnnQNetwork, self).__init__()
-        self.conv1 = nn.Conv2d(channels, 16, 76)
-        self.conv2 = nn.Conv2d(16, 32, 4)
+        self.conv1 = nn.Conv2d(channels, 16, 5, stride=5)
+        self.conv2 = nn.Conv2d(16, 32, 4, stride=4)
         self.layer3 = nn.Linear(32*4*4, 256)
         self.layer4 = nn.Linear(256, n_actions)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.relu(self.conv2(x))
-        x = F.relu(self.layer3(x))
+        x = F.relu(self.layer3(x.reshape(x.size(0), -1)))
         return self.layer4(x)
 
 class DQN():
@@ -55,7 +55,7 @@ class DQN():
         self.gamma = _gamma
         self.epsilon_end = _epsilon
         self.epsilon_start = 0.9
-        self.epsilon_decay = 1000
+        self.epsilon_decay = 300
         self.state_size = _state_size
         self.action_size = _action_size
         self.buffer_size = 100000
@@ -94,8 +94,8 @@ class DQN():
 
     def check_set_replay_transition(self, obs_prev, obs, action, reward, terminated):
 
-        experience = [obs_prev.tolist()]
-        experience.append(obs.tolist())
+        experience = [obs_prev]
+        experience.append(obs)
         experience.append(action)
         experience.append(reward)
         experience.append(terminated)
@@ -113,7 +113,7 @@ class DQN():
 
     def epsilon_greedy(self, state, steps_done):
         if(self.CNN):
-            state = torch.from_numpy(state).float().to(device).unsqueeze(0)
+            state = torch.from_numpy(state).float().to(device).unsqueeze(0).permute(0,3,1,2)
         else:
             state = torch.tensor(state, dtype=torch.float32, device=device)
         random_sample = random.random()
@@ -138,7 +138,7 @@ class DQN():
             self.replay_buffer = pickle.load(fp)
 
     def files_exist(self):
-        if path.exists(self.replay_buffer):
+        if path.exists(self.replay_buffer_file_name):
             return True
         else:
             return False
@@ -146,8 +146,9 @@ class DQN():
     def change_name(self, new_name):
         self.name = new_name
 
-    def get_best_action(self, current_state):
-        current_state = torch.tensor(current_state, device=device)
+    def get_best_action(self, _current_state):
+        current_state = torch.from_numpy(_current_state).float().to(device).unsqueeze(0).permute(0,3,1,2)
+        #current_state = torch.tensor(_current_state, device=device, dtype=torch.float32)
         with torch.no_grad():
                 prediction = self.prediction_net(current_state)
                 return torch.argmax(prediction).item()
@@ -173,16 +174,18 @@ class DQN():
         batch = random.choices(self.replay_buffer, k=batch_size)
         #batch = self.get_replay_batch(batch_size=batch_size)
         T_batch = list(zip(*batch))
-        prev_obs_batch = torch.tensor(T_batch[0], device=device)
-        obs_batch = torch.tensor(T_batch[1], device=device)
-        action_batch = torch.tensor(T_batch[2], device=device)
-        reward_batch = torch.tensor(T_batch[3], device=device)
-        terminate_batch = torch.tensor(T_batch[4], device=device)
+        #prev_obs_batch = torch.tensor(T_batch[0], device=device, dtype=torch.float32)
+        prev_obs_batch = torch.from_numpy(np.array(T_batch[0])).float().to(device).permute(0,3,1,2)
+        #obs_batch = torch.tensor(T_batch[1], device=device, dtype=torch.float32)
+        obs_batch = torch.from_numpy(np.array(T_batch[1])).float().to(device).permute(0,3,1,2)
+        action_batch = torch.tensor(T_batch[2], device=device, dtype=torch.float32)
+        reward_batch = torch.tensor(T_batch[3], device=device, dtype=torch.float32)
+        terminate_batch = torch.tensor(T_batch[4], device=device, dtype=torch.float32)
         terminate_batch = terminate_batch.long()
         terminate_batch = 1-terminate_batch
 
         target_values = self.target_net(obs_batch).max(1)[0]
-        prediction_values = self.prediction_net(prev_obs_batch).gather(1, action_batch.reshape(batch_size, 1))
+        prediction_values = self.prediction_net(prev_obs_batch).gather(1, action_batch.reshape(batch_size, 1).long())
 
         criterion = nn.SmoothL1Loss()
         #loss = torch.mean(((reward_batch + self.gamma*terminate_batch*target_values) - prediction_values)**2)

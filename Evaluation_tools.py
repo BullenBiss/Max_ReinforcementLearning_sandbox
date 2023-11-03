@@ -3,17 +3,12 @@ import plotly.graph_objects as go
 import matplotlib.animation as animation
 import numpy as np
 import torch
-import multiprocessing
 
 
 class Evaluator:
     def __init__(self):
         plt.ion()
         self.total_reward = []
-
-    def plot_process(self):
-        _plot_process = multiprocessing.Process(target=self.plot_durations)
-        _plot_process.start()
 
     def cumulative_reward(self, current_reward, current_run):
         self.total_reward.append(current_reward)
