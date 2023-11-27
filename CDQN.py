@@ -48,14 +48,14 @@ class CnnQNetwork(nn.Module):
         return self.layer4(x)
 
 class DQN():
-    def __init__(self, _gamma, _alpha, _epsilon, _state_size, _action_size, CNN=False, resume_last=False):
+    def __init__(self, _gamma, _alpha, _epsilon, _state_size, _action_size, agent_name='Noone', CNN=False, resume_last=False):
 
-        self.name = 'Noone'
+        self.name = agent_name
         self.alpha = _alpha
         self.gamma = _gamma
         self.epsilon_end = _epsilon
-        self.epsilon_start = 0.9
-        self.epsilon_decay = 300
+        self.epsilon_start = 0.05
+        self.epsilon_decay = 500
         self.state_size = _state_size
         self.action_size = _action_size
         self.buffer_size = 100000
@@ -138,7 +138,7 @@ class DQN():
             self.replay_buffer = pickle.load(fp)
 
     def files_exist(self):
-        if path.exists(self.replay_buffer_file_name):
+        if path.exists("Agents/"+self.name):
             return True
         else:
             return False
@@ -165,7 +165,7 @@ class DQN():
         return deque(itertools.islice(self.replay_buffer, random_start, random_start+batch_size))
 
     def DQN_training(self, batch_size):
-        if(self.buff_index < 10000):
+        if(self.buff_index < 100000):
             return
 
         # Algorithm used from "Implementing the Deep Q-Network", 2017
@@ -190,11 +190,12 @@ class DQN():
         criterion = nn.SmoothL1Loss()
         #loss = torch.mean(((reward_batch + self.gamma*terminate_batch*target_values) - prediction_values)**2)
         y = reward_batch + self.gamma*terminate_batch*target_values
+        y = y.to(device)
 
-        loss = criterion(prediction_values, y.unsqueeze(1))
+        loss = criterion(prediction_values, y.unsqueeze(1)).cuda()
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_value_(self.prediction_net.parameters(), 1)
+        torch.nn.utils.clip_grad_value_(self.prediction_net.parameters(), 100)
         self.optimizer.step()
 
         return

@@ -16,11 +16,10 @@ img_h, img_w, img_c = env.observation_space.shape
 
 gamma = 0.99
 alpha = alpha = 1e-4
-epsilon = 0.05
-BATCH_SIZE = 8
-agent = CDQN.DQN(gamma, alpha, epsilon, img_h, 5, CNN=True, resume_last=False)
+epsilon = 0.005
+BATCH_SIZE = 32
+agent = CDQN.DQN(gamma, alpha, epsilon, img_h, 5, CNN=True, resume_last=True)
 evaluator = Evaluation_tools.Evaluator()
-
 
 print("Starting")
 terminated_i = 0
