@@ -15,7 +15,7 @@ gamma = 0.99
 alpha = alpha = 1e-4
 epsilon = 0.05
 BATCH_SIZE = 128
-agent = DQN.DQN(gamma, alpha, epsilon, len(observation), 4, resume_last=False)
+agent = DQN.DQN(gamma, alpha, epsilon, len(observation), 4, resume_last=True)
 evaluator = Evaluation_tools.Evaluator()
 
 

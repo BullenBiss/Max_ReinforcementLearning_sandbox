@@ -17,9 +17,9 @@ class QTable:
         self.epsilon = _epsilon
         self.tile_coding = _tile_coding
         self.action_size = _action_size
-        _tiles_per_dim = [3, 3, 3, 3, 3, 3, 2, 2]
+        _tiles_per_dim = [16, 16, 16, 16, 16, 16, 2, 2]
         _lims = [(-1.5, 1.5), (-1.5, 1.5), (-5, 5), (-5, 5), (-3.1415927, 3.1415927), (-5, 5), (-0, 1), (-0, 1)]
-        _tilings = 2
+        _tilings = 1
 
         #_tiles_per_dim = [3, 3, 3, 3, 3, 3]
         #_lims = [(-1, 1), (-1, 1), (-1, 1), (-1, 1), (-12.566371, 12.566371), (-28.274334, 28.274334)]
