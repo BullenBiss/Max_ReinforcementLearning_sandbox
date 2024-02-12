@@ -17,7 +17,7 @@ img_h, img_w, img_c = env.observation_space.shape
 gamma = 0.99
 alpha = alpha = 1e-4
 epsilon = 0.005
-BATCH_SIZE = 32
+BATCH_SIZE = 1024
 agent = CDQN.DQN(gamma, alpha, epsilon, img_h, 5, CNN=True, resume_last=True)
 evaluator = Evaluation_tools.Evaluator()
 
@@ -57,8 +57,6 @@ try:
                 plot_i = 0
             observation, info = env.reset()
 except KeyboardInterrupt:
-    evaluator.save_log()
-    agent.save_agent_to_file()
     print("Run ended")
     env.close()
 
