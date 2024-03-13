@@ -20,7 +20,7 @@ rng = np.random.default_rng(0)
 dataset = minari.load_dataset('door-expert-v1', download=True)
 ep_generator = dataset.iterate_episodes()
 
-vec_env = DummyVecEnv([lambda: gym.make('AdroitHandDoor-v1', max_episode_steps=400)])
+vec_env = DummyVecEnv([lambda: gym.make('AdroitHandDoor-v1', max_episode_steps=200)])
 vec_env.reset()
 trajectories = []
 for episode in ep_generator:
@@ -39,7 +39,7 @@ rollouts = np.array(trajectories)
 #env = gym.make('AdroitHandDoor-v1', max_episode_steps=400)
 
 imitation_trainer = PPO(
-    ActorCriticPolicy, vec_env, learning_rate=3e-4, gamma=0.95, ent_coef=1e-4, n_steps=400, batch_size=10
+    ActorCriticPolicy, vec_env, learning_rate=3e-4, gamma=0.4, ent_coef=1e-4, n_steps=200, batch_size=200
 )
 
 density_trainer = db.DensityAlgorithm(
@@ -50,7 +50,7 @@ density_trainer = db.DensityAlgorithm(
     density_type=db.DensityType.STATE_ACTION_DENSITY,
     is_stationary=True,
     kernel="gaussian",
-    kernel_bandwidth=0.4,
+    kernel_bandwidth=0.6,
     standardise_inputs=True,
 )
 density_trainer.train()
@@ -74,7 +74,7 @@ print_stats(density_trainer, 1)
 
 
 
-vec_env_test = DummyVecEnv([lambda: gym.make('AdroitHandDoor-v1', max_episode_steps=400, render_mode="human")])
+vec_env_test = DummyVecEnv([lambda: gym.make('AdroitHandDoor-v1', max_episode_steps=200, render_mode="human")])
 obs = vec_env_test.reset()
 
 while True:
