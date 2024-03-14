@@ -27,11 +27,11 @@ class QNetwork(nn.Module):
     def __init__(self, pixel_hw, n_actions):
         super(QNetwork, self).__init__()
         self.pixel_hw = pixel_hw
-        self.noisy_layer1 = noisy_layer.NoisyLinear(8, 64)
-        self.noisy_layer2 = noisy_layer.NoisyLinear(64, 512)
+        self.noisy_layer1 = noisy_layer.NoisyLinear(210, 256)
+        self.noisy_layer2 = noisy_layer.NoisyLinear(256, 512)
         self.noisy_layer3 = noisy_layer.NoisyLinear(512, n_actions)
-        self.noisy_layer4 = noisy_layer.NoisyLinear(8, 64)
-        self.noisy_layer5 = noisy_layer.NoisyLinear(64, 512)
+        self.noisy_layer4 = noisy_layer.NoisyLinear(210, 256)
+        self.noisy_layer5 = noisy_layer.NoisyLinear(256, 512)
         self.noisy_layer6 = noisy_layer.NoisyLinear(512, 1)
 
         self.advantage = nn.Sequential(

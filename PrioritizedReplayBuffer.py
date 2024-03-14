@@ -12,8 +12,8 @@ class ReplayBuffer:
             self.obs_prev = np.empty((size, 4, 84, 84), dtype=np.float32)
             self.obs = np.empty((size, 4, 84, 84), dtype=np.float32)
         else: 
-            self.obs_prev = np.empty((size, 8), dtype=np.float32)
-            self.obs = np.empty((size, 8), dtype=np.float32)
+            self.obs_prev = np.empty((size, 210), dtype=np.float32)
+            self.obs = np.empty((size, 210), dtype=np.float32)
 
         self.acts_buf = np.empty((size), dtype=np.float32)
         self.rews_buf = np.empty((size), dtype=np.float32)
