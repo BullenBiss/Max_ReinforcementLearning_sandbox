@@ -57,7 +57,7 @@ print(torch.cuda.is_available())
 
 
 #img_h = env.observation_space.shape
-gamma = 0.9
+gamma = 0.5
 alpha = 1e-2
 
 BATCH_SIZE = 128

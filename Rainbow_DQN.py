@@ -133,9 +133,9 @@ class DQN():
         self.CNN = CNN
         self.demonstration = demonstration
         ## Prioritized replay Buffer ##
-        self.per_alpha = 0.2
-        self.per_beta = 0.6
-        self.prior_eps = 1e-6      
+        self.per_alpha = 0.5
+        self.per_beta = 0.4
+        self.prior_eps = 1e-6
 
         if(CNN):
             self.prediction_net = CnnQNetwork(4, 84, self.action_size).to(device)
