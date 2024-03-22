@@ -109,10 +109,7 @@ agent.change_name("Rainbow_LunarLander")
 
 
 if agent.demonstration:
-    #pygame.init()
-    #screen = pygame.display.set_mode((400, 300))
-    #pygame.display.set_caption("CarRacing Controller")
-    #env_demon = gym.make("LunarLander-v2", render_mode="human")
+    evaluator_demonstrations = Evaluation_tools.Evaluator()
     env_demon = gym.make("CarRacing-v2", continuous=False, render_mode="human")
     #env_demon = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
     env_demon = Rainbow_DQN.SkipFrame(env_demon, skip=4)
@@ -120,8 +117,13 @@ if agent.demonstration:
     env_demon = Rainbow_DQN.ResizeObservation(env_demon, shape=84)
     env_demon = FrameStack(env_demon, num_stack=4)
 
+
     d_observation, d_info = env_demon.reset()
     d_action = 0
+    time_step = 0
+    ep_time_step = 0
+    d_ack_reward = 0
+    
     while True:
 
         if keyboard.is_pressed('w'):  # Replace 'a' with any key you want to check
@@ -133,21 +135,24 @@ if agent.demonstration:
         elif keyboard.is_pressed('d'):
             d_action = 1
         elif keyboard.is_pressed("enter"):
-            d_action = -1
+            break
         else: d_action = 0
 
-        d_observation_previous = d_observation
-        #d_action = register_input(d_action)
-        if d_action == -1:
-            break
+        time_step = time_step + 1
+        ep_time_step = ep_time_step + 1
+
+        d_observation_previous = d_observation            
         d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
+        d_ack_reward = d_ack_reward + d_reward
         agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
 
         if d_truncated or d_terminated:
+            ep_time_step = 0
             d_observation, d_info = env_demon.reset()
             agent.DQN_training()
     #agent.update_target_network()
     env_demon.close()
+    evaluator_demonstrations.save_log("Experiment1_demonstration")
 
 #env = gym.make("BreakoutNoFrameskip-v4")
 #env = mo.make("mo-supermario-v0")

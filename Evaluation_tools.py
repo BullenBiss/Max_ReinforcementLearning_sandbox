@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 import matplotlib.animation as animation
 import numpy as np
 import torch
+import torchvision.transforms as T
 
 
 class Evaluator:
@@ -12,15 +13,27 @@ class Evaluator:
         self.total_reward = []
         self.success = []
         self.mean_rewards = []
-        self.iterations = []
+
+        self.total_timesteps = []
+        self.episode_timesteps = []
+        self.iteration_reward = []
+        self.episode_reward = []
+        self.action = []
 
     def cumulative_reward(self, current_reward, current_run):
         self.total_reward.append(current_reward)
 
+    def store_for_log(self, total_timesteps, episode_timesteps, reward, ack_reward, action):
+        self.total_timesteps.append(total_timesteps)
+        self.episode_timesteps.append(episode_timesteps)
+        self.iteration_reward.append(reward)
+        self.episode_reward.append(ack_reward)
+        self.action.append(action)
+
     def save_log(self, name):
         #array_to_file = np.array(self.total_reward)
         #np.save('Reward_log', array_to_file)
-        mat = [self.iterations, self.mean_rewards, self.success]
+        mat = [self.total_timesteps, self.episode_timesteps, self.iteration_reward, self.episode_reward, self.action]
         transposed = list(map(lambda *x: list(x), *mat))
 
         with open(name+".txt", 'w') as file:
@@ -54,3 +67,8 @@ class Evaluator:
         self.success.append(success)
         self.mean_rewards.append(mean_reward)
         self.iterations.append(iteration)
+
+    def show_tensor(self, tensor):
+        transform = T.ToPILImage()
+        img = transform(tensor)
+        img.show()
