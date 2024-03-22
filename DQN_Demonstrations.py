@@ -149,7 +149,7 @@ if agent.demonstration:
         d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
         d_ack_reward = d_ack_reward + d_reward
         evaluator_demonstrations.store_for_log(time_step, ep_time_step, d_reward, d_ack_reward, d_action)
-        #agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
+        agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
         #time.sleep(0.1)
         if d_truncated or d_terminated:
             print(time_step)
