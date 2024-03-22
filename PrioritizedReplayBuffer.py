@@ -171,6 +171,3 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weight = weight / max_weight
         
         return weight
-    
-    def change_alpha(self, _alpha):
-        self.alpha = _alpha

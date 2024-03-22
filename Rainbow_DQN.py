@@ -135,11 +135,12 @@ class DQN():
         ## Prioritized replay Buffer ##
         #self.per_alpha = 0.2
         #self.per_beta = 0.6
-        self.per_alpha = 0.8
-        self.per_beta = 0.6
+        self.per_alpha = 0.5
+        self.per_beta = 0.4
         self.prior_eps = 1e-6
 
         if(CNN):
+            print(_state_size[0], _state_size[1])
             self.prediction_net = CnnQNetwork(_state_size[0], _state_size[1], self.action_size).to(device)
             self.target_net = CnnQNetwork(_state_size[0], _state_size[1], self.action_size).to(device) 
             if resume_last:
@@ -171,7 +172,7 @@ class DQN():
 
         # PER
         self.memory = PER.PrioritizedReplayBuffer(
-            _state_size, self.buffer_size, self.batch_size, self.per_alpha, CNN
+            self.state_size, self.buffer_size, self.batch_size, self.alpha, CNN
         )        
 
     def check_set_replay_transition(self, _obs_prev, _obs, action, reward, terminated):
@@ -233,14 +234,6 @@ class DQN():
         observation = transforms(observation).squeeze(0)
         return observation
     
-    def demonstration_learning_rate(self, _demonstration):
-        if _demonstration:
-            self.optimizer.param_groups[0]['lr'] = 0.8
-            #self.memory.change_alpha = 1
-        else:
-            self.optimizer.param_groups[0]['lr'] = self.alpha
-            #self.memory.change_alpha = self.per_alpha
-
     def DQN_training(self):
         if(len(self.memory) < self.batch_size):
             return

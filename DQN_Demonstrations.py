@@ -129,7 +129,6 @@ if agent.demonstration:
 
     d_observation, d_info = env_demon.reset()
     d_action = 0
-    agent.demonstration_learning_rate(False)
     while True:
         if keyboard.is_pressed('w'):  # Move up or forward
             d_action = 3
@@ -190,7 +189,6 @@ ack_action_reward = 0
 ack1000_success = 0
 ack1000_reward = 0
 epsilon_travel = -0.1
-agent.demonstration_learning_rate(False)
 
 total_timesteps = 0
 episode_timesteps = 0
