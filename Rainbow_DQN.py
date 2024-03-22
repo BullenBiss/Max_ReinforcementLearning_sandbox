@@ -27,11 +27,11 @@ class QNetwork(nn.Module):
     def __init__(self, pixel_hw, n_actions):
         super(QNetwork, self).__init__()
         self.pixel_hw = pixel_hw
-        self.noisy_layer1 = noisy_layer.NoisyLinear(210, 256)
-        self.noisy_layer2 = noisy_layer.NoisyLinear(256, 512)
+        self.noisy_layer1 = noisy_layer.NoisyLinear(pixel_hw, 3136)
+        self.noisy_layer2 = noisy_layer.NoisyLinear(3136, 512)
         self.noisy_layer3 = noisy_layer.NoisyLinear(512, n_actions)
-        self.noisy_layer4 = noisy_layer.NoisyLinear(210, 256)
-        self.noisy_layer5 = noisy_layer.NoisyLinear(256, 512)
+        self.noisy_layer4 = noisy_layer.NoisyLinear(pixel_hw, 3136)
+        self.noisy_layer5 = noisy_layer.NoisyLinear(3136, 512)
         self.noisy_layer6 = noisy_layer.NoisyLinear(512, 1)
 
         self.advantage = nn.Sequential(
@@ -133,13 +133,15 @@ class DQN():
         self.CNN = CNN
         self.demonstration = demonstration
         ## Prioritized replay Buffer ##
-        self.per_alpha = 0.5
-        self.per_beta = 0.4
+        #self.per_alpha = 0.2
+        #self.per_beta = 0.6
+        self.per_alpha = 0.8
+        self.per_beta = 0.6
         self.prior_eps = 1e-6
 
         if(CNN):
-            self.prediction_net = CnnQNetwork(4, 84, self.action_size).to(device)
-            self.target_net = CnnQNetwork(4, 84, self.action_size).to(device) 
+            self.prediction_net = CnnQNetwork(_state_size[0], _state_size[1], self.action_size).to(device)
+            self.target_net = CnnQNetwork(_state_size[0], _state_size[1], self.action_size).to(device) 
             if resume_last:
                 if self.files_exist():
                     print("Loading previous agent")
@@ -169,7 +171,7 @@ class DQN():
 
         # PER
         self.memory = PER.PrioritizedReplayBuffer(
-            _state_size, self.buffer_size, self.batch_size, _alpha, CNN
+            _state_size, self.buffer_size, self.batch_size, self.per_alpha, CNN
         )        
 
     def check_set_replay_transition(self, _obs_prev, _obs, action, reward, terminated):
@@ -231,6 +233,13 @@ class DQN():
         observation = transforms(observation).squeeze(0)
         return observation
     
+    def demonstration_learning_rate(self, _demonstration):
+        if _demonstration:
+            self.optimizer.param_groups[0]['lr'] = 0.8
+            #self.memory.change_alpha = 1
+        else:
+            self.optimizer.param_groups[0]['lr'] = self.alpha
+            #self.memory.change_alpha = self.per_alpha
 
     def DQN_training(self):
         if(len(self.memory) < self.batch_size):
@@ -282,6 +291,10 @@ class DQN():
         self.memory.update_priorities(indices, new_priorities)       
 
         return
+    
+    def ConvertToTensor(self, _observation):
+        observation = torch.tensor(_observation.copy(), dtype=torch.float, device=device)
+        return observation
     
 ### =========================================== ###
     

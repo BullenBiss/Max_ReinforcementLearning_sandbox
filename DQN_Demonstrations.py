@@ -8,13 +8,13 @@ import datetime
 from gymnasium.utils.play import PlayPlot, play
 import numpy as np
 import pygame
-
-
+import keyboard
+import time
 ### ============================================================ ###
 
 def progress_preview(_evaluator, iteration, _agent):
-    env_preview = gym.make("CarRacing-v2", continuous=False, render_mode=None)
-    #env_preview = gym.make("ALE/Breakout-v5")
+    #env_preview = gym.make("CarRacing-v2", continuous=False, render_mode=None)
+    env_preview = gym.make("ALE/Breakout-v5")
     #env_preview = mo.make("mo-supermario-v0")
     #env_preview = mo.LinearReward(env_preview)
     #env_preview = gym.make("LunarLander-v2", render_mode=None)
@@ -65,9 +65,9 @@ def register_input(_keypress):
             if event.key == pygame.K_LEFT:
                 keypress = 2
             if event.key == pygame.K_RIGHT:
-                keypress = 1
-            if event.key == pygame.K_UP:
                 keypress = 3
+            if event.key == pygame.K_UP:
+                keypress = 1
             if event.key == pygame.K_DOWN:
                 keypress = 4
             if event.key == pygame.K_RETURN:
@@ -90,29 +90,37 @@ print(torch.cuda.is_available())
 
 #img_h = env.observation_space.shape
 gamma = 0.9
-alpha = alpha = 1e-3
+alpha = 1e-3
+#gamma = 0.9
+#alpha = 2.5e-5
 
+#BATCH_SIZE = 128
 BATCH_SIZE = 128
+
 agent = Rainbow_DQN.DQN(gamma, 
                  alpha, 
-                 #[img_h,img_w, img_c], 
-                 84,
+                 [4,84,84], 
+                 #8,
                  5, 
                  BATCH_SIZE,
                  CNN=True, 
                  resume_last=False,
                  demonstration=True)
-evaluator = Evaluation_tools.Evaluator()
 
-agent.change_name("Rainbow_LunarLander")
+agent.change_name("Experiment1_racecar_d")
 
 
 
 if agent.demonstration:
-    pygame.init()
-    screen = pygame.display.set_mode((400, 300))
-    pygame.display.set_caption("CarRacing Controller")
+    evaluator_demonstrations = Evaluation_tools.Evaluator()
+    time_step = 0
+    ep_time_step = 0
+    d_ack_reward = 0
+    #env_demon = gym.make("BreakoutNoFrameskip-v4",  render_mode="human")
+    #env_demon = mo.make("mo-supermario-v0", render_mode="human")
+    #env_demon = mo.LinearReward(env_demon)
     #env_demon = gym.make("LunarLander-v2", render_mode="human")
+    #env_demon = TransformReward(env_demon, lambda r: 1 if r == 1 else r-0.04)
     env_demon = gym.make("CarRacing-v2", continuous=False, render_mode="human")
     env_demon = Rainbow_DQN.SkipFrame(env_demon, skip=4)
     env_demon = Rainbow_DQN.GrayScaleObservation(env_demon)
@@ -121,24 +129,45 @@ if agent.demonstration:
 
     d_observation, d_info = env_demon.reset()
     d_action = 0
+    agent.demonstration_learning_rate(False)
     while True:
-        d_observation_previous = d_observation
-        d_action = register_input(d_action)
-        if d_action == -1:
+        if keyboard.is_pressed('w'):  # Move up or forward
+            d_action = 3
+        elif keyboard.is_pressed('a'):  # Move left
+            d_action = 2
+        elif keyboard.is_pressed('s'):  # Move down or backward
+            d_action = 4
+        elif keyboard.is_pressed('d'):  # Move right
+            d_action = 1
+        elif keyboard.is_pressed("enter"):  # Special action or select
             break
-        d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
-        agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
+        else: d_action = 0
 
+        time_step = time_step + 1
+        ep_time_step = ep_time_step + 1
+
+        d_observation_previous = d_observation
+        d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
+        d_ack_reward = d_ack_reward + d_reward
+        evaluator_demonstrations.store_for_log(time_step, ep_time_step, d_reward, d_ack_reward, d_action)
+        #agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
+        #time.sleep(0.1)
         if d_truncated or d_terminated:
+            print(time_step)
+            ep_time_step = 0
             d_observation, d_info = env_demon.reset()
             agent.DQN_training()
-    pygame.quit()
     env_demon.close()
+    evaluator_demonstrations.save_log("Experiment1_demonstration")
+    #agent.update_target_network()
 
-#env = gym.make("ALE/Breakout-v5")
+evaluator = Evaluation_tools.Evaluator()
+
+#env = gym.make("BreakoutNoFrameskip-v4")
+#env._max_episode_steps = 10000
 #env = mo.make("mo-supermario-v0")
 #env = mo.LinearReward(env)
-env = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+env = gym.make("CarRacing-v2", continuous=False, render_mode=None)
 #env = gym.make("LunarLander-v2", render_mode=None)
 #env = TransformReward(env, lambda r: 1 if r == 1 else r-0.04)
 
@@ -147,6 +176,7 @@ env = Rainbow_DQN.SkipFrame(env, skip=4)
 env = Rainbow_DQN.GrayScaleObservation(env)
 env = Rainbow_DQN.ResizeObservation(env, shape=84)
 env = FrameStack(env, num_stack=4)
+
 observation, info = env.reset()
 start_time = datetime.datetime.now()
 print("Starting")
@@ -160,13 +190,18 @@ ack_action_reward = 0
 ack1000_success = 0
 ack1000_reward = 0
 epsilon_travel = -0.1
+agent.demonstration_learning_rate(False)
 
-MAX_ITERATIONS = 10000
+total_timesteps = 0
+episode_timesteps = 0
+MAX_ITERATIONS = 1000
 try:
     while terminated_i <= MAX_ITERATIONS:
         ### Main DQN segment ###
         i = i+1
         step_i = step_i+1
+        total_timesteps = total_timesteps + 1
+        episode_timesteps = episode_timesteps + 1
 
         observation_previous = observation
         action = agent.select_action(observation)
@@ -174,8 +209,9 @@ try:
         observation, reward, terminated, truncated, info = env.step(action)
 
         ack_reward = ack_reward + reward
+
         agent.check_set_replay_transition(observation_previous, observation, action, reward, terminated)
-        
+        evaluator.store_for_log(total_timesteps, episode_timesteps, reward, ack_reward, action)
         # PER: increase beta
         fraction = min(terminated_i / MAX_ITERATIONS, 1.0)
         agent.per_beta = agent.per_beta + fraction * (1.0 - agent.per_beta)
@@ -208,7 +244,7 @@ try:
                 ack1000_reward = 0
 
                 evaluator.plot_durations()
-                progress_preview(evaluator, terminated_i, agent)
+                #progress_preview(evaluator, terminated_i, agent)
             
             observation, info = env.reset()
             ack_reward = 0
@@ -219,18 +255,18 @@ except KeyboardInterrupt:
     env.close()
 
 agent.save_agent_to_file()
-evaluator.save_plots("Rainbow_LunarLander")
-evaluator.save_log("Rainbow_LunarLander")
+evaluator.save_plots("Experiment1_racecar_d")
+evaluator.save_log("Experiment1_racecar_d")
 stop_time = datetime.datetime.now()
 print("Start time: ", start_time)
 print("Stop time: ", stop_time)
 ### ============================================================ ###
 
 env_test = gym.make("CarRacing-v2", continuous=False, render_mode="human")
-#env_test = gym.make("ALE/Breakout-v5", render_mode="human")
+#env_test = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
 #env_test = mo.make("mo-supermario-v0", render_mode="human")
 #env_test = gym.make("LunarLander-v2", render_mode="human")
-
+#env_test._max_episode_steps = 100000
 # Apply Wrappers to environment
 
 env_test = Rainbow_DQN.SkipFrame(env_test, skip=4)

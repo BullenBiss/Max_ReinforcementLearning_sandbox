@@ -9,11 +9,11 @@ class ReplayBuffer:
 
     def __init__(self, obs_dim, size: int, batch_size: int = 32, CNN=False):
         if CNN:
-            self.obs_prev = np.empty((size, 4, 84, 84), dtype=np.float32)
-            self.obs = np.empty((size, 4, 84, 84), dtype=np.float32)
+            self.obs_prev = np.empty((size, obs_dim[0], obs_dim[1], obs_dim[2]), dtype=np.float32)
+            self.obs = np.empty((size, obs_dim[0], obs_dim[1], obs_dim[2]), dtype=np.float32)
         else: 
-            self.obs_prev = np.empty((size, 210), dtype=np.float32)
-            self.obs = np.empty((size, 210), dtype=np.float32)
+            self.obs_prev = np.empty((size, obs_dim), dtype=np.float32)
+            self.obs = np.empty((size, obs_dim), dtype=np.float32)
 
         self.acts_buf = np.empty((size), dtype=np.float32)
         self.rews_buf = np.empty((size), dtype=np.float32)
@@ -171,3 +171,6 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         weight = weight / max_weight
         
         return weight
+    
+    def change_alpha(self, _alpha):
+        self.alpha = _alpha
