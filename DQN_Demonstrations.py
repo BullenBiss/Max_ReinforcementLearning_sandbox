@@ -8,13 +8,13 @@ import datetime
 from gymnasium.utils.play import PlayPlot, play
 import numpy as np
 import pygame
-
+import keyboard
 
 ### ============================================================ ###
 
 def progress_preview(_evaluator, iteration, _agent):
     env_preview = gym.make("CarRacing-v2", continuous=False, render_mode=None)
-    #env_preview = gym.make("ALE/Breakout-v5")
+    #env_preview = gym.make("BreakoutNoFrameskip-v0")
     #env_preview = mo.make("mo-supermario-v0")
     #env_preview = mo.LinearReward(env_preview)
     #env_preview = gym.make("LunarLander-v2", render_mode=None)
@@ -109,11 +109,12 @@ agent.change_name("Rainbow_LunarLander")
 
 
 if agent.demonstration:
-    pygame.init()
-    screen = pygame.display.set_mode((400, 300))
-    pygame.display.set_caption("CarRacing Controller")
+    #pygame.init()
+    #screen = pygame.display.set_mode((400, 300))
+    #pygame.display.set_caption("CarRacing Controller")
     #env_demon = gym.make("LunarLander-v2", render_mode="human")
     env_demon = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+    #env_demon = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
     env_demon = Rainbow_DQN.SkipFrame(env_demon, skip=4)
     env_demon = Rainbow_DQN.GrayScaleObservation(env_demon)
     env_demon = Rainbow_DQN.ResizeObservation(env_demon, shape=84)
@@ -122,8 +123,21 @@ if agent.demonstration:
     d_observation, d_info = env_demon.reset()
     d_action = 0
     while True:
+
+        if keyboard.is_pressed('w'):  # Replace 'a' with any key you want to check
+            d_action = 3
+        elif keyboard.is_pressed('a'):  # Exit condition
+            d_action = 2
+        elif keyboard.is_pressed('s'):
+            d_action = 4
+        elif keyboard.is_pressed('d'):
+            d_action = 1
+        elif keyboard.is_pressed("enter"):
+            d_action = -1
+        else: d_action = 0
+
         d_observation_previous = d_observation
-        d_action = register_input(d_action)
+        #d_action = register_input(d_action)
         if d_action == -1:
             break
         d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
@@ -132,13 +146,13 @@ if agent.demonstration:
         if d_truncated or d_terminated:
             d_observation, d_info = env_demon.reset()
             agent.DQN_training()
-    pygame.quit()
+    #agent.update_target_network()
     env_demon.close()
 
-#env = gym.make("ALE/Breakout-v5")
+#env = gym.make("BreakoutNoFrameskip-v4")
 #env = mo.make("mo-supermario-v0")
 #env = mo.LinearReward(env)
-env = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+env = gym.make("CarRacing-v2", continuous=False, render_mode=None)
 #env = gym.make("LunarLander-v2", render_mode=None)
 #env = TransformReward(env, lambda r: 1 if r == 1 else r-0.04)
 
@@ -161,7 +175,7 @@ ack1000_success = 0
 ack1000_reward = 0
 epsilon_travel = -0.1
 
-MAX_ITERATIONS = 10000
+MAX_ITERATIONS = 1000
 try:
     while terminated_i <= MAX_ITERATIONS:
         ### Main DQN segment ###
@@ -208,7 +222,7 @@ try:
                 ack1000_reward = 0
 
                 evaluator.plot_durations()
-                progress_preview(evaluator, terminated_i, agent)
+                #progress_preview(evaluator, terminated_i, agent)
             
             observation, info = env.reset()
             ack_reward = 0
@@ -227,7 +241,7 @@ print("Stop time: ", stop_time)
 ### ============================================================ ###
 
 env_test = gym.make("CarRacing-v2", continuous=False, render_mode="human")
-#env_test = gym.make("ALE/Breakout-v5", render_mode="human")
+#env_test = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
 #env_test = mo.make("mo-supermario-v0", render_mode="human")
 #env_test = gym.make("LunarLander-v2", render_mode="human")
 
@@ -240,7 +254,6 @@ env_test = FrameStack(env_test, num_stack=4)
 
 observation, info = env_test.reset()
 ack_reward = 0
-
 
 try:
     while True:
