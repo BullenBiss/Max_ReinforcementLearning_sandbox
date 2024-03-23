@@ -9,109 +9,38 @@ from gymnasium.utils.play import PlayPlot, play
 import numpy as np
 import pygame
 import keyboard
-
-### ============================================================ ###
-
-def progress_preview(_evaluator, iteration, _agent):
-    env_preview = gym.make("CarRacing-v2", continuous=False, render_mode=None)
-    #env_preview = gym.make("BreakoutNoFrameskip-v0")
-    #env_preview = mo.make("mo-supermario-v0")
-    #env_preview = mo.LinearReward(env_preview)
-    #env_preview = gym.make("LunarLander-v2", render_mode=None)
-    #env_preview = TransformReward(env_preview, lambda r: 1 if r == 1 else r-0.04)
-
-    # Apply Wrappers to environment
-    env_preview = Rainbow_DQN.SkipFrame(env_preview, skip=4)
-    env_preview = Rainbow_DQN.GrayScaleObservation(env_preview)
-    env_preview = Rainbow_DQN.ResizeObservation(env_preview, shape=84)
-    env_preview = FrameStack(env_preview, num_stack=4)
-
-    p_observation, info = env_preview.reset()
-    p_ack_reward = 0
-    p_ack100_success = 0
-    p_ack100_reward = 0
-    p_action = 0
-    p_terminated_i = 0
-
-    while True:
-        p_action = _agent.select_action(p_observation)
-        p_observation, p_reward, p_terminated, p_truncated, p_info = env_preview.step(p_action)
-        p_ack_reward += p_reward
-        p_ack100_reward += p_reward
-
-
-        if p_terminated or p_truncated:
-            p_observation, p_info = env_preview.reset()
-            p_terminated_i += 1
-
-            if p_ack_reward >= 200:
-                p_ack100_success += 1
-            p_ack_reward = 0
-            
-            if p_terminated_i >= 10:
-                print("preview result: " + str(p_ack100_success) + "% (mean reward: " + str(p_ack100_reward/10) + ")",end="\n", flush=True)
-                _evaluator.save_rewards(p_ack100_success, p_ack100_reward/10, iteration)
-                break
-
-    env_preview.close()
-
-def register_input(_keypress):
-    global quit, restart
-    keypress = _keypress
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            quit = True
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT:
-                keypress = 2
-            if event.key == pygame.K_RIGHT:
-                keypress = 1
-            if event.key == pygame.K_UP:
-                keypress = 3
-            if event.key == pygame.K_DOWN:
-                keypress = 4
-            if event.key == pygame.K_RETURN:
-                restart = True
-            if event.key == pygame.K_ESCAPE:
-                keypress = -1       
-        elif event.type == pygame.KEYUP:
-                if event.key in (pygame.K_LEFT, pygame.K_RIGHT):
-                    keypress = 0  # Stop turning
-                elif event.key == pygame.K_UP:
-                    keypress = 0  # Stop accelerating
-                elif event.key == pygame.K_DOWN:
-                    keypress = 0   # Release brake
-    return keypress
-
+import time
 ### ============================================================ ###
 
 print(torch.cuda.is_available())
 
 
 #img_h = env.observation_space.shape
+#gamma = 0.9
+#alpha = 1e-3
 gamma = 0.9
-alpha = alpha = 1e-3
+alpha = 1e-5
 
 BATCH_SIZE = 128
 agent = Rainbow_DQN.DQN(gamma, 
                  alpha, 
                  #[img_h,img_w, img_c], 
                  84,
-                 5, 
+                 4, 
                  BATCH_SIZE,
                  CNN=True, 
                  resume_last=False,
                  demonstration=True)
 evaluator = Evaluation_tools.Evaluator()
 
-agent.change_name("Rainbow_LunarLander")
+agent.change_name("Experiment3_breakout_d")
 
 
 
 if agent.demonstration:
-    evaluator_demonstrations = Evaluation_tools.Evaluator()
-    env_demon = gym.make("CarRacing-v2", continuous=False, render_mode="human")
-    #env_demon = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
+    evaluator_demonstrations = Evaluation_tools.Evaluator(False)
+    #env_demon = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+    env_demon = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
     env_demon = Rainbow_DQN.SkipFrame(env_demon, skip=4)
     env_demon = Rainbow_DQN.GrayScaleObservation(env_demon)
     env_demon = Rainbow_DQN.ResizeObservation(env_demon, shape=84)
@@ -127,13 +56,13 @@ if agent.demonstration:
     while True:
 
         if keyboard.is_pressed('w'):  # Replace 'a' with any key you want to check
-            d_action = 3
+            d_action = 1
         elif keyboard.is_pressed('a'):  # Exit condition
-            d_action = 2
+            d_action = 3
         elif keyboard.is_pressed('s'):
             d_action = 4
         elif keyboard.is_pressed('d'):
-            d_action = 1
+            d_action = 2
         elif keyboard.is_pressed("enter"):
             break
         else: d_action = 0
@@ -144,20 +73,21 @@ if agent.demonstration:
         d_observation_previous = d_observation            
         d_observation, d_reward, d_terminated, d_truncated, d_info = env_demon.step(d_action)
         d_ack_reward = d_ack_reward + d_reward
+        evaluator_demonstrations.store_for_log(time_step, ep_time_step, d_reward, d_ack_reward, d_action)
         agent.check_set_replay_transition(d_observation_previous, d_observation, d_action, d_reward, d_terminated)
-
+        time.sleep(0.1)
         if d_truncated or d_terminated:
             ep_time_step = 0
             d_observation, d_info = env_demon.reset()
             agent.DQN_training()
     #agent.update_target_network()
     env_demon.close()
-    evaluator_demonstrations.save_log("Experiment1_demonstration")
+    evaluator_demonstrations.save_log("Experiment3_demonstration")
 
-#env = gym.make("BreakoutNoFrameskip-v4")
+env = gym.make("BreakoutNoFrameskip-v4")
 #env = mo.make("mo-supermario-v0")
 #env = mo.LinearReward(env)
-env = gym.make("CarRacing-v2", continuous=False, render_mode=None)
+#env = gym.make("CarRacing-v2", continuous=False, render_mode=None)
 #env = gym.make("LunarLander-v2", render_mode=None)
 #env = TransformReward(env, lambda r: 1 if r == 1 else r-0.04)
 
@@ -180,12 +110,16 @@ ack1000_success = 0
 ack1000_reward = 0
 epsilon_travel = -0.1
 
-MAX_ITERATIONS = 1000
+total_timesteps = 0
+episode_timesteps = 0
+MAX_ITERATIONS = 10000
 try:
     while terminated_i <= MAX_ITERATIONS:
         ### Main DQN segment ###
         i = i+1
         step_i = step_i+1
+        total_timesteps = total_timesteps + 1
+        episode_timesteps = episode_timesteps + 1
 
         observation_previous = observation
         action = agent.select_action(observation)
@@ -194,7 +128,7 @@ try:
 
         ack_reward = ack_reward + reward
         agent.check_set_replay_transition(observation_previous, observation, action, reward, terminated)
-        
+        evaluator.store_for_log(total_timesteps, episode_timesteps, reward, ack_reward, action)
         # PER: increase beta
         fraction = min(terminated_i / MAX_ITERATIONS, 1.0)
         agent.per_beta = agent.per_beta + fraction * (1.0 - agent.per_beta)
@@ -203,7 +137,7 @@ try:
             agent.DQN_training()
             i = 0
 
-        if step_i >= 10:
+        if step_i >= 5000:
             agent.update_target_network()
             step_i = 0
         ### ________________ ###
@@ -213,6 +147,7 @@ try:
         ## === ##
         if terminated or truncated:         
             terminated_i = terminated_i + 1
+            episode_timesteps = 0
             print(ack_reward, terminated_i)
 
             ack1000_reward += ack_reward
@@ -238,15 +173,15 @@ except KeyboardInterrupt:
     env.close()
 
 agent.save_agent_to_file()
-evaluator.save_plots("Rainbow_LunarLander")
-evaluator.save_log("Rainbow_LunarLander")
+evaluator.save_plots("Experiment3_breakout_d")
+evaluator.save_log("Experiment3_breakout_d")
 stop_time = datetime.datetime.now()
 print("Start time: ", start_time)
 print("Stop time: ", stop_time)
 ### ============================================================ ###
 
-env_test = gym.make("CarRacing-v2", continuous=False, render_mode="human")
-#env_test = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
+#env_test = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+env_test = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
 #env_test = mo.make("mo-supermario-v0", render_mode="human")
 #env_test = gym.make("LunarLander-v2", render_mode="human")
 
@@ -266,8 +201,6 @@ try:
         observation, reward, terminated, truncated, info = env_test.step(action)
 
         ack_reward += reward
-
-
         if terminated or truncated:
             observation, info = env_test.reset()
             #print("reward: " + str(ack_reward))

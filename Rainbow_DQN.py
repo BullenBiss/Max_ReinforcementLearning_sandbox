@@ -27,11 +27,11 @@ class QNetwork(nn.Module):
     def __init__(self, pixel_hw, n_actions):
         super(QNetwork, self).__init__()
         self.pixel_hw = pixel_hw
-        self.noisy_layer1 = noisy_layer.NoisyLinear(210, 256)
-        self.noisy_layer2 = noisy_layer.NoisyLinear(256, 512)
+        self.noisy_layer1 = noisy_layer.NoisyLinear(pixel_hw, 3136)
+        self.noisy_layer2 = noisy_layer.NoisyLinear(3136, 512)
         self.noisy_layer3 = noisy_layer.NoisyLinear(512, n_actions)
-        self.noisy_layer4 = noisy_layer.NoisyLinear(210, 256)
-        self.noisy_layer5 = noisy_layer.NoisyLinear(256, 512)
+        self.noisy_layer4 = noisy_layer.NoisyLinear(pixel_hw, 3136)
+        self.noisy_layer5 = noisy_layer.NoisyLinear(3136, 512)
         self.noisy_layer6 = noisy_layer.NoisyLinear(512, 1)
 
         self.advantage = nn.Sequential(
@@ -169,7 +169,7 @@ class DQN():
 
         # PER
         self.memory = PER.PrioritizedReplayBuffer(
-            _state_size, self.buffer_size, self.batch_size, _alpha, CNN
+            _state_size, self.buffer_size, self.batch_size, self.per_alpha, CNN
         )        
 
     def check_set_replay_transition(self, _obs_prev, _obs, action, reward, terminated):
