@@ -128,15 +128,15 @@ class DQN():
         self.gamma = _gamma
         self.state_size = _state_size
         self.action_size = _action_size
-        self.buffer_size = 10000
+        self.buffer_size = 100000
         self.buff_index = 0
         self.CNN = CNN
         self.demonstration = demonstration
         ## Prioritized replay Buffer ##
-        #self.per_alpha = 0.2
-        #self.per_beta = 0.6
-        self.per_alpha = 0.5
-        self.per_beta = 0.4
+        self.per_alpha = 0.2
+        self.per_beta = 0.6
+        #self.per_alpha = 0.5
+        #self.per_beta = 0.4
         self.prior_eps = 1e-6
 
         if(CNN):
@@ -172,7 +172,7 @@ class DQN():
 
         # PER
         self.memory = PER.PrioritizedReplayBuffer(
-            self.state_size, self.buffer_size, self.batch_size, self.alpha, CNN
+            self.state_size, self.buffer_size, self.batch_size, self.per_alpha, CNN
         )        
 
     def check_set_replay_transition(self, _obs_prev, _obs, action, reward, terminated):

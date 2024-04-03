@@ -7,9 +7,10 @@ import torchvision.transforms as T
 
 
 class Evaluator:
-    def __init__(self):
-        plt.ion()
-        plt.figure(figsize=(20,8))
+    def __init__(self, create_plot=True):
+        if create_plot:
+            plt.ion()
+            plt.figure(figsize=(20,8))
         self.total_reward = []
         self.success = []
         self.mean_rewards = []
