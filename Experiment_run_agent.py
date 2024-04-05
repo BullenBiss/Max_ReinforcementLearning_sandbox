@@ -37,7 +37,7 @@ agent = Rainbow_DQN.DQN(gamma,
                 CNN=True, 
                 resume_last=True,
                 demonstration=False,
-                agent_name="Experiment7_spaceInvaders")
+                agent_name="Experiment3_spaceInvaders_d")
 
 #agent.change_name(experiment)
 
@@ -47,29 +47,37 @@ agent = Rainbow_DQN.DQN(gamma,
 #env_test = gym.make("LunarLander-v2", render_mode="human")
 #env_test._max_episode_steps = 100000
 # Apply Wrappers to environment
-env_test = gym.make("SpaceInvadersNoFrameskip-v4", render_mode="human")
+env_test = gym.make("SpaceInvadersNoFrameskip-v4", render_mode=None)
 env_test = Rainbow_DQN.SkipFrame(env_test, skip=4)
 env_test = Rainbow_DQN.GrayScaleObservation(env_test)
 env_test = Rainbow_DQN.ResizeObservation(env_test, shape=84)
 env_test = FrameStack(env_test, num_stack=4)
 
+evaluator = Evaluation_tools.Evaluator(False)
+
 observation, info = env_test.reset()
 ack_reward = 0
+step_i = 0
+episode_i = 0
 
 
 try:
-    while True:
+    while episode_i <= 100:
+        step_i = step_i+1
+        episode_i = episode_i+1
         action = agent.select_action(observation)  ### <-- This line samples a random action for from the environment. Replace this with your optimal action calculation ###
         observation, reward, terminated, truncated, info = env_test.step(action)
-
         ack_reward += reward
-
+        evaluator.store_for_log(step_i, episode_i, reward, ack_reward, action)
 
         if terminated or truncated:
             observation, info = env_test.reset()
-            #print("reward: " + str(ack_reward))
+            print("reward: " + str(ack_reward))
             ack_reward = 0
-
+            episode_i = 0
+    
+    evaluator.save_log("Exp1_eval.txt")
+    env_test.close()
 except KeyboardInterrupt:
     print("Test ended")
     env_test.close()
