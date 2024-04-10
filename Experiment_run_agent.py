@@ -25,29 +25,29 @@ print(torch.cuda.is_available())
 gamma = 0.9
 alpha = 2.5e-5
 
-#BATCH_SIZE = 128
-BATCH_SIZE = 256
+BATCH_SIZE = 128
+#BATCH_SIZE = 256
 
 agent = Rainbow_DQN.DQN(gamma, 
                 alpha, 
                 [4,84,84], 
                 #8,
-                6, 
+                4, 
                 BATCH_SIZE,
                 CNN=True, 
                 resume_last=True,
                 demonstration=False,
-                agent_name="Experiment3_spaceInvaders_d")
+                agent_name="Experiment2_racecar")
 
 #agent.change_name(experiment)
 
-#env_test = gym.make("CarRacing-v2", continuous=False, render_mode="human")
+env_test = gym.make("CarRacing-v2", continuous=False, render_mode=None)
 #env_test = gym.make("BreakoutNoFrameskip-v4", render_mode="human")
 #env_test = mo.make("mo-supermario-v0", render_mode="human")
 #env_test = gym.make("LunarLander-v2", render_mode="human")
 #env_test._max_episode_steps = 100000
 # Apply Wrappers to environment
-env_test = gym.make("SpaceInvadersNoFrameskip-v4", render_mode=None)
+#env_test = gym.make("SpaceInvadersNoFrameskip-v4", render_mode=None)
 env_test = Rainbow_DQN.SkipFrame(env_test, skip=4)
 env_test = Rainbow_DQN.GrayScaleObservation(env_test)
 env_test = Rainbow_DQN.ResizeObservation(env_test, shape=84)
@@ -59,10 +59,10 @@ observation, info = env_test.reset()
 ack_reward = 0
 step_i = 0
 episode_i = 0
-
+run_i = 0
 
 try:
-    while episode_i <= 100:
+    while run_i < 50:
         step_i = step_i+1
         episode_i = episode_i+1
         action = agent.select_action(observation)  ### <-- This line samples a random action for from the environment. Replace this with your optimal action calculation ###
@@ -75,8 +75,9 @@ try:
             print("reward: " + str(ack_reward))
             ack_reward = 0
             episode_i = 0
+            run_i = run_i + 1
     
-    evaluator.save_log("Exp1_eval.txt")
+    evaluator.save_log("Exp2_eval.txt")
     env_test.close()
 except KeyboardInterrupt:
     print("Test ended")

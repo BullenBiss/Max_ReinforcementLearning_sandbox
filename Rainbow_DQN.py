@@ -133,7 +133,7 @@ class DQN():
         self.CNN = CNN
         self.demonstration = demonstration
         ## Prioritized replay Buffer ##
-        self.per_alpha = 0.2
+        self.per_alpha = 0.5
         self.per_beta = 0.6
         #self.per_alpha = 0.5
         #self.per_beta = 0.4

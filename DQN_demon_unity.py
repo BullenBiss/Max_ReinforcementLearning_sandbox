@@ -56,18 +56,18 @@ def register_input(_keypress):
 print(torch.cuda.is_available())
 
 
-gamma = 0.99
-alpha = 1e-3
+gamma = 0.90
+alpha = 1e-5
 
-BATCH_SIZE = 1024
+BATCH_SIZE = 128
 agent = Rainbow_DQN.DQN(gamma, 
                  alpha, 
-                 [3,84,84], 
-                 7, 
+                 243, 
+                 39, 
                  BATCH_SIZE,
-                 CNN=True, 
+                 CNN=False, 
                  resume_last=False,
-                 demonstration=True)
+                 demonstration=False)
 evaluator = Evaluation_tools.Evaluator()
 
 agent.change_name("Unity")
@@ -121,10 +121,10 @@ if agent.demonstration:
 
 agent.update_target_network()
 
-unity_env_fast = UnityEnvironment(r"D:\Projects\Unity_builds\PushBlock_static_fast\UnityEnvironment.exe", no_graphics=True)
+unity_env_fast = UnityEnvironment(r"D:\Projects\Unity_builds\Walker\UnityEnvironment.exe", no_graphics=False)
 env_fast = UnityToGymWrapper(unity_env_fast, uint8_visual=True, flatten_branched=True)
 observation = agent.ConvertToTensor(env_fast.reset())
-agent.demonstration_learning_rate(False)
+#agent.demonstration_learning_rate(False)
 
 action = 0
 MAX_ITERATIONS = 10000
@@ -204,7 +204,7 @@ env_test = Rainbow_DQN.GrayScaleObservation(env_test)
 env_test = Rainbow_DQN.ResizeObservation(env_test, shape=84)
 env_test = FrameStack(env_test, num_stack=4)
 '''
-unity_env = UnityEnvironment(r"D:\Projects\Unity_builds\PushBlock_static\UnityEnvironment.exe", no_graphics=False)
+unity_env = UnityEnvironment(r"D:\Projects\Unity_builds\Walker\UnityEnvironment.exe", no_graphics=False)
 env_test = UnityToGymWrapper(unity_env, uint8_visual=True, flatten_branched=True)
 
 observation= agent.ConvertToTensor(env_test.reset())

@@ -1,104 +1,49 @@
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.envs.unity_gym_env import UnityToGymWrapper
 from mlagents_envs.registry import default_registry
-
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3 import PPO
 import torch
 import Rainbow_DQN
 from gym.wrappers import FrameStack
 import datetime
 
 #unity_env = default_registry["WallJump"].make()
-unity_env = UnityEnvironment("C:\\PROJECTS\\ml-agents\\Project\\example_envs\\UnityEnvironment.exe")
-env = UnityToGymWrapper(unity_env, uint8_visual=True, flatten_branched=True)
-
+unity_env = UnityEnvironment(r"D:\Projects\Unity_builds\Walker_fast\UnityEnvironment.exe", no_graphics=True)
+#env = UnityToGymWrapper(unity_env, uint8_visual=False, flatten_branched=True)
+env = DummyVecEnv([lambda: UnityToGymWrapper(unity_env, uint8_visual=False, flatten_branched=True)])
 
 print(torch.cuda.is_available())
 
-img_h= env.observation_space.shape
-gamma = 0.9
-alpha = alpha = 1e-5
-
-BATCH_SIZE = 128
-agent = Rainbow_DQN.DQN(gamma, 
-                 alpha, 
-                 img_h, 
-                 7, 
-                 BATCH_SIZE,
-                 CNN=False, 
-                 resume_last=False)
-
-agent.change_name("Unity")
-
-observation = env.reset()
-action = env.action_space.sample()
-start_time = datetime.datetime.now()
-print("Starting")
-terminated_i = 0
-step_i = 0
-i = 0
-ack_reward = 0
-plot_i = 0
-ack_reward = 0
-ack_action_reward = 0
-ack1000_success = 0
-ack1000_reward = 0
-epsilon_travel = -0.1
-
-MAX_ITERATIONS = 15000
 
 try:
-    while terminated_i <= MAX_ITERATIONS:
-        ### Main DQN segment ###
-        i = i+1
-        step_i = step_i+1
+    agent = PPO("MlpPolicy", env, verbose=1)
+    agent.learn(total_timesteps=20000000)
+except KeyboardInterrupt:
+    env.close()
+agent.save(r"Agents\ppo_walker")
+env.close()
+start_time = datetime.datetime.now()
+print("Starting")
 
-        observation_previous = observation
-        action = agent.select_action(observation, terminated_i)
 
-        observation, reward, terminated, info = env.step(action)
+unity_env_test = UnityEnvironment(r"D:\Projects\Unity_builds\Walker\UnityEnvironment.exe", no_graphics=False)
+#env_test = UnityToGymWrapper(unity_env_test, uint8_visual=False, flatten_branched=True)
+env_test = DummyVecEnv([lambda: UnityToGymWrapper(unity_env_test, uint8_visual=False, flatten_branched=True)])
+observation = env_test.reset()
+ack_reward = 0
 
-        ack_reward = ack_reward + reward
-        agent.check_set_replay_transition(observation_previous, observation, action, reward, terminated)
-        
-        # PER: increase beta
-        fraction = min(terminated_i / MAX_ITERATIONS, 1.0)
-        agent.per_beta = agent.per_beta + fraction * (1.0 - agent.per_beta)
+try:
+    while True:
+        action = agent.predict(observation)  ### <-- This line samples a random action for from the environment. Replace this with your optimal action calculation ###
+        observation, reward, terminated, info = env_test.step(action)
+        ack_reward += reward
 
-        if i >= 4:
-            agent.DQN_training()
-            i = 0
-
-        if step_i >= 10:
-            agent.update_target_network()
-            step_i = 0
-        ### ________________ ###
-
-        ack_action_reward = 0
-
-        ## === ##
-        if terminated:         
-            terminated_i = terminated_i + 1
-            print(ack_reward, terminated_i)
-
-            ack1000_reward += ack_reward
-
-            if(ack_reward >= 600):
-                ack1000_success+=1
-
-            if (terminated_i % 100 == 0):
-                print("\niteration "+ str(terminated_i-100) +"-" + str(terminated_i) + ": " + str(ack1000_success/10) + "%" + " (mean reward: " + str(ack1000_reward/100) + ")")
-                ack1000_success = 0
-                ack1000_reward = 0
-            
-            observation = env.reset()
+        if terminated:
+            observation = env_test.reset()
+            #print("reward: " + str(ack_reward))
             ack_reward = 0
 
 except KeyboardInterrupt:
-    #Qtable.save_Q_table_to_file()
-    print("Run ended")
-    env.close()
-
-agent.save_agent_to_file()
-stop_time = datetime.datetime.now()
-print("Start time: ", start_time)
-print("Stop time: ", stop_time)
+    print("Test ended")
+    env_test.close()
