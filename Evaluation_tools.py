@@ -4,7 +4,7 @@ import matplotlib.animation as animation
 import numpy as np
 import torch
 import torchvision.transforms as T
-
+import pandas as pd
 
 class Evaluator:
     def __init__(self, create_plot=True):
@@ -20,6 +20,7 @@ class Evaluator:
         self.iteration_reward = []
         self.episode_reward = []
         self.action = []
+        self.demonstration = None
 
     def cumulative_reward(self, current_reward, current_run):
         self.total_reward.append(current_reward)
@@ -73,3 +74,18 @@ class Evaluator:
         transform = T.ToPILImage()
         img = transform(tensor)
         img.show()
+
+    def read_demonstrations(self, filename):
+        # Read the specific columns from the file using pandas
+        data = pd.read_csv(filename, header=None, usecols=[1, 4], names=['EpisodeTimeStep', 'Action'], delim_whitespace=True)
+        
+        # Group data by the resetting of EpisodeTimeStep
+        # Identify new episodes by checking where the timestep resets to a lower value than the previous one
+        data['NewEpisode'] = data['EpisodeTimeStep'].diff().fillna(1) < 0
+        data['EpisodeIndex'] = data['NewEpisode'].cumsum() - 1
+        
+        # Group by EpisodeIndex and create separate numpy arrays for each episode
+        grouped = data.groupby('EpisodeIndex')
+        episodes = [group[['EpisodeTimeStep', 'Action']].values for name, group in grouped]
+        return np.array(episodes, dtype=object)
+
